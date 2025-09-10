@@ -4,6 +4,12 @@
 
 [English](./README.md) | 中文
 
+[![npm version](https://img.shields.io/npm/v/rss-aggregator.svg)](https://www.npmjs.com/package/rss-reader-mcp)
+
+[![license](https://img.shields.io/github/license/kwp-lab/rss-reader-mcp.svg)](LICENSE)
+
+[![build status](https://img.shields.io/github/actions/workflow/status/kwp-lab/rss-reader-mcp/publish.yml?branch=main)](https://github.com/kwp-lab/rss-reader-mcp/actions/workflows/publish.yml)
+
 ## 🚀 快速开始
 
 你可以在MCP客户端（如[Claude Desktop](https://claude.ai/download)、[CherryStudio](https://www.cherry-ai.com/)等）中使用此 MCP 服务器。

@@ -4,6 +4,12 @@ An MCP (Model Context Protocol) server for RSS feed aggregation and article cont
 
 English | [中文](./README_zh.md)
 
+[![npm version](https://img.shields.io/npm/v/rss-aggregator.svg)](https://www.npmjs.com/package/rss-reader-mcp)
+
+[![license](https://img.shields.io/github/license/kwp-lab/rss-reader-mcp.svg)](LICENSE)
+
+[![build status](https://img.shields.io/github/actions/workflow/status/kwp-lab/rss-reader-mcp/publish.yml?branch=main)](https://github.com/kwp-lab/rss-reader-mcp/actions/workflows/publish.yml)
+
 ## 🚀 Quick Start
 
 You can use this MCP server in MCP-capable clients such as [Claude Desktop](https://claude.ai/download) and [CherryStudio](https://www.cherry-ai.com/).
