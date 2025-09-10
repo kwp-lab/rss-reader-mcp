@@ -1,10 +1,10 @@
-# RSS MCP 服务器
+# RSS Reader MCP
 
 一个用于RSS源聚合和文章内容提取的大模型上下文协议（MCP）服务器，你可以使用它来订阅RSS源并获取文章列表，或者从URL提取完整文章内容并格式化为Markdown。
 
 [English](./README.md) | 中文
 
-[![npm version](https://img.shields.io/npm/v/rss-aggregator.svg)](https://www.npmjs.com/package/rss-reader-mcp)
+[![npm version](https://img.shields.io/npm/v/rss-reader-mcp.svg)](https://www.npmjs.com/package/rss-reader-mcp)
 
 [![license](https://img.shields.io/github/license/kwp-lab/rss-reader-mcp.svg)](LICENSE)
 

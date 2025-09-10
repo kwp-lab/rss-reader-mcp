@@ -1,10 +1,10 @@
-# RSS MCP Server
+# RSS Reader MCP
 
 An MCP (Model Context Protocol) server for RSS feed aggregation and article content extraction. You can use it to subscribe to RSS feeds and fetch article lists, or extract the full content of an article from a URL and format it as Markdown.
 
 English | [中文](./README_zh.md)
 
-[![npm version](https://img.shields.io/npm/v/rss-aggregator.svg)](https://www.npmjs.com/package/rss-reader-mcp)
+[![npm version](https://img.shields.io/npm/v/rss-reader-mcp.svg)](https://www.npmjs.com/package/rss-reader-mcp)
 
 [![license](https://img.shields.io/github/license/kwp-lab/rss-reader-mcp.svg)](LICENSE)
 
