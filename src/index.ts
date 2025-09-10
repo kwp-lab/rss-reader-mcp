@@ -1,235 +1,144 @@
 #!/usr/bin/env node
-import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import {
-  CallToolRequestSchema,
-  ListToolsRequestSchema,
-  McpError,
-  ErrorCode,
-  Tool,
-} from "@modelcontextprotocol/sdk/types.js";
+import { FastMCP, UserError } from "fastmcp";
+import { z } from "zod";
 import Parser from "rss-parser";
-import axios from "axios";
+import { fetch as nodeFetch } from "node-fetch-native";
 import { JSDOM } from "jsdom";
 import TurndownService from "turndown";
-import {
-  FeedInfo,
-  RSSFeedEntry,
-  ArticleContent,
-  isValidFetchFeedArgs,
-  isValidFetchArticleArgs,
-} from "./types.js";
+import { FeedInfo, RSSFeedEntry, ArticleContent } from "./types.js";
 
-class RSSMCPServer {
-  private readonly server: Server;
-  private readonly rssParser: Parser;
-  private readonly turndownService: TurndownService;
+// Initialize helpers once
+const rssParser = new Parser();
 
-  constructor() {
-    this.server = new Server(
-      {
-        name: "rss-mcp-server",
-        version: "1.0.0",
-      },
-      {
-        capabilities: {
-          tools: {},
-        },
-      }
-    );
+const turndownService = new TurndownService({
+  headingStyle: "atx",
+  bulletListMarker: "-",
+  codeBlockStyle: "fenced",
+});
 
-    this.rssParser = new Parser({
-      customFields: {
-        feed: ['language', 'copyright'],
-        item: ['summary', 'category']
-      }
-    });
+// Create FastMCP server
+const server = new FastMCP({
+  name: "rss-reader-mcp",
+  version: "1.0.0",
+  // stdio defaults to no pings; keep it quiet
+});
 
-    this.turndownService = new TurndownService({
-      headingStyle: 'atx',
-      bulletListMarker: '-',
-      codeBlockStyle: 'fenced',
-    });
-
-    this.setupToolHandlers();
-    
-    // Error handling
-    this.server.onerror = (error) => console.error("[MCP Error]", error);
-    process.on("SIGINT", async () => {
-      await this.server.close();
-      process.exit(0);
-    });
-  }
-
-  private setupToolHandlers(): void {
-    this.server.setRequestHandler(ListToolsRequestSchema, async () => {
-      return {
-        tools: [
-          {
-            name: "fetch_feed_entries",
-            description: "Fetch RSS feed entries from a given URL",
-            inputSchema: {
-              type: "object",
-              properties: {
-                url: {
-                  type: "string",
-                  description: "The RSS feed URL to fetch",
-                },
-                limit: {
-                  type: "number",
-                  description: "Maximum number of entries to return (default: 10)",
-                  minimum: 1,
-                  maximum: 100,
-                },
-              },
-              required: ["url"],
-            },
-          },
-          {
-            name: "fetch_article_content",
-            description: "Fetch and extract article content from a URL, formatted as Markdown",
-            inputSchema: {
-              type: "object",
-              properties: {
-                url: {
-                  type: "string",
-                  description: "The article URL to fetch content from",
-                },
-              },
-              required: ["url"],
-            },
-          },
-        ] as Tool[],
-      };
-    });
-
-    this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      const { name, arguments: args } = request.params;
-
-      try {
-        switch (name) {
-          case "fetch_feed_entries":
-            return await this.handleFetchFeedEntries(args);
-          case "fetch_article_content":
-            return await this.handleFetchArticleContent(args);
-          default:
-            throw new McpError(
-              ErrorCode.MethodNotFound,
-              `Unknown tool: ${name}`
-            );
-        }
-      } catch (error) {
-        if (error instanceof McpError) {
-          throw error;
-        }
-        
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        return {
-          content: [
-            {
-              type: "text",
-              text: `Error: ${errorMessage}`,
-            },
-          ],
-          isError: true,
-        };
-      }
-    });
-  }
-
-  private async handleFetchFeedEntries(args: unknown) {
-    if (!isValidFetchFeedArgs(args)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "Invalid arguments for fetch_feed_entries"
-      );
-    }
-
+// Tool: fetch_feed_entries
+server.addTool({
+  name: "fetch_feed_entries",
+  description: "Fetch RSS feed entries from a given URL",
+  parameters: z.object({
+    url: z.string().url("Invalid URL format"),
+    limit: z.number().int().min(1).max(100).optional(),
+  }),
+  annotations: {
+    title: "Fetch RSS Feed Entries",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  execute: async ({ url, limit = 10 }) => {
     try {
-      const { url, limit = 10 } = args;
-      const feed = await this.rssParser.parseURL(url);
-        const feedInfo: FeedInfo = {
+      const feed = await rssParser.parseURL(url);
+      type RawItem = {
+        title?: string;
+        link?: string;
+        pubDate?: string;
+        isoDate?: string;
+        creator?: string;
+        author?: string;
+        summary?: string;
+        contentSnippet?: string;
+        categories?: string[];
+        guid?: string;
+      };
+      const feedInfo: FeedInfo = {
         title: feed.title ?? "Untitled Feed",
         description: feed.description,
         link: feed.link ?? url,
         lastBuildDate: feed.lastBuildDate,
-        entries: feed.items.slice(0, limit).map((item): RSSFeedEntry => ({
-          title: item.title ?? "Untitled",
-          link: item.link ?? "",
-          pubDate: item.pubDate ?? item.isoDate,
-          creator: item.creator ?? item.author,
-          summary: item.summary ?? item.contentSnippet,
-          categories: item.categories,
-          guid: item.guid,
-        })),
+        entries: (feed.items ?? []).slice(0, limit).map(
+          (item: RawItem): RSSFeedEntry => ({
+            title: item.title ?? "Untitled",
+            link: item.link ?? "",
+            pubDate: item.pubDate ?? item.isoDate,
+            creator: item.creator ?? item.author,
+            summary: item.summary ?? item.contentSnippet,
+            categories: item.categories,
+            guid: item.guid,
+          }),
+        ),
       };
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(feedInfo, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Failed to fetch RSS feed: ${errorMessage}`,
-          },
-        ],
-        isError: true,
-      };
+      return JSON.stringify(feedInfo, null, 2);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UserError(`Failed to fetch RSS feed: ${message}`);
     }
-  }
+  },
+});
 
-  private async handleFetchArticleContent(args: unknown) {
-    if (!isValidFetchArticleArgs(args)) {
-      throw new McpError(
-        ErrorCode.InvalidParams,
-        "Invalid arguments for fetch_article_content"
-      );
-    }
-
+// Tool: fetch_article_content
+server.addTool({
+  name: "fetch_article_content",
+  description:
+    "Fetch and extract article content from a URL, formatted as Markdown",
+  parameters: z.object({
+    url: z.string().url("Invalid URL format"),
+  }),
+  annotations: {
+    title: "Fetch Article Content",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+    streamingHint: false,
+  },
+  execute: async ({ url }) => {
     try {
-      const { url } = args;
-      
-      // Fetch the webpage
-      const response = await axios.get(url, {
+      // Implement timeout via AbortController since fetch has no native timeout option
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30_000);
+      const response = await nodeFetch(url, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
         },
-        timeout: 30000,
+        redirect: "follow",
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
-      // Parse HTML
-      const dom = new JSDOM(response.data);
-      const document = dom.window.document;      // Extract title
-      let title = document.querySelector('title')?.textContent ?? 
-                 document.querySelector('h1')?.textContent ?? 
-                 'Untitled Article';
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
 
-      // Clean up title
-      title = title.trim();      // Try to find main content
-      let contentElement = 
-        document.querySelector('article') ??
+      const html = await response.text();
+      const dom = new JSDOM(html);
+      const document = dom.window.document;
+
+      // Extract title
+      let title =
+        document.querySelector("title")?.textContent ??
+        document.querySelector("h1")?.textContent ??
+        "Untitled Article";
+      title = title.trim();
+
+      // Try to find main content
+      let contentElement =
+        document.querySelector("article") ??
         document.querySelector('[role="main"]') ??
-        document.querySelector('.content') ??
-        document.querySelector('.post-content') ??
-        document.querySelector('.entry-content') ??
-        document.querySelector('.article-content') ??
-        document.querySelector('main') ??
-        document.querySelector('.container');
+        document.querySelector(".content") ??
+        document.querySelector(".post-content") ??
+        document.querySelector(".entry-content") ??
+        document.querySelector(".article-content") ??
+        document.querySelector("main") ??
+        document.querySelector(".container");
 
-      // If no specific content container found, try to find the largest text block
       if (!contentElement) {
-        const paragraphs = Array.from(document.querySelectorAll('p'));
+        const paragraphs = Array.from(document.querySelectorAll("p"));
         if (paragraphs.length > 0) {
-          // Find the parent element that contains the most paragraphs
-          const parentCounts = new Map();          paragraphs.forEach(p => {
+          const parentCounts = new Map<Element, number>();
+          paragraphs.forEach((p) => {
             let parent = p.parentElement;
             while (parent && parent !== document.body) {
               const count = parentCounts.get(parent) ?? 0;
@@ -237,39 +146,47 @@ class RSSMCPServer {
               parent = parent.parentElement;
             }
           });
-          
+
           let maxCount = 0;
-          let bestParent = null;
+          let bestParent: Element | null = null;
           parentCounts.forEach((count, parent) => {
             if (count > maxCount) {
               maxCount = count;
               bestParent = parent;
             }
           });
-          
           contentElement = bestParent;
         }
-      }      contentElement ??= document.body;
+      }
+      contentElement ??= document.body;
 
       // Remove unwanted elements
       const unwantedSelectors = [
-        'script', 'style', 'nav', 'header', 'footer', 
-        '.sidebar', '.navigation', '.menu', '.ads', 
-        '.advertisement', '.social-share', '.comments',
-        '.related-posts', '.author-bio'
+        "script",
+        "style",
+        "nav",
+        "header",
+        "footer",
+        ".sidebar",
+        ".navigation",
+        ".menu",
+        ".ads",
+        ".advertisement",
+        ".social-share",
+        ".comments",
+        ".related-posts",
+        ".author-bio",
       ];
-      
-      unwantedSelectors.forEach(selector => {
-        contentElement!.querySelectorAll(selector).forEach(el => el.remove());
+      unwantedSelectors.forEach((selector) => {
+        contentElement.querySelectorAll(selector).forEach((el) => el.remove());
       });
 
-      // Convert to markdown
       const htmlContent = contentElement.innerHTML;
-      let markdownContent = this.turndownService.turndown(htmlContent);      // Clean up the markdown
+      let markdownContent = turndownService.turndown(htmlContent);
       markdownContent = markdownContent
-        .replace(/\n{3,}/g, '\n\n') // Remove excessive line breaks
-        .replace(/^(\s+)|(\s+)$/g, '') // Trim whitespace
-        .replace(/\[!\[.*?\]\(.*?\)\]\(.*?\)/g, '') // Remove complex image links
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/^(?:\s+|\s+)$/g, "")
+        .replace(/\[!\[.*?\]\(.*?\)\]\(.*?\)/g, "")
         .trim();
 
       const articleContent: ArticleContent = {
@@ -279,34 +196,28 @@ class RSSMCPServer {
         extractedAt: new Date().toISOString(),
       };
 
-      return {
-        content: [
-          {
-            type: "text",
-            text: JSON.stringify(articleContent, null, 2),
-          },
-        ],
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      return {
-        content: [
-          {
-            type: "text",
-            text: `Failed to fetch article content: ${errorMessage}`,
-          },
-        ],
-        isError: true,
-      };
+      return JSON.stringify(articleContent, null, 2);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UserError(`Failed to fetch article content: ${message}`);
     }
-  }
+  },
+});
 
-  async run(): Promise<void> {
-    const transport = new StdioServerTransport();
-    await this.server.connect(transport);
-    console.error("RSS MCP server running on stdio");
-  }
+const transportType = process.env.TRANSPORT || "stdio";
+console.error(`RSS Reader MCP server running on ${transportType}`);
+
+if (transportType === "httpStream") {
+  const port = Number(process.env.PORT || 8081);
+  server.start({
+    transportType,
+    httpStream: {
+      host: process.env.MCP_SERVER_HOST || "localhost", // if run in Docker, set to "0.0.0.0"
+      port,
+    },
+  });
+} else {
+  server.start({
+    transportType: "stdio",
+  });
 }
-
-const server = new RSSMCPServer();
-server.run().catch(console.error);

@@ -23,10 +23,7 @@ For Claude Desktop, add the following configuration under the "mcpServers" secti
   "mcpServers": {
     "rss-reader": {
       "command": "npx",
-      "args": [
-        "-y",
-        "rss-reader-mcp"
-      ]
+      "args": ["-y", "rss-reader-mcp"]
     }
   }
 }
@@ -35,12 +32,13 @@ For Claude Desktop, add the following configuration under the "mcpServers" secti
 ### Usage Examples
 
 - Basic RSS Feed Fetching
+
   > Can you fetch the latest 5 headlines from the BBC News RSS feed?
-URL: <https://feeds.bbci.co.uk/news/rss.xml>
+  > URL: <https://feeds.bbci.co.uk/news/rss.xml>
 
 - Full Article Content Extraction
   > Please extract the full content of this article and format it as Markdown:
-<https://example.com/news/article-title>
+  > <https://example.com/news/article-title>
 
 ## 🔧 Tools Reference
 
@@ -80,12 +78,7 @@ Using CherryStudio as an example, the following configuration shows how to run t
   "mcpServers": {
     "rss-reader-mcp": {
       "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "rss-reader-mcp"
-      ]
+      "args": ["run", "--rm", "-i", "rss-reader-mcp"]
     }
   }
 }

@@ -129,16 +129,16 @@ The server works with most standard RSS and Atom feeds:
 
 ### fetch_feed_entries
 
-| Parameter | Type | Required | Description | Default |
-|-----------|------|----------|-------------|---------|
-| `url` | string | Yes | RSS feed URL | - |
-| `limit` | number | No | Max entries to return (1-100) | 10 |
+| Parameter | Type   | Required | Description                   | Default |
+| --------- | ------ | -------- | ----------------------------- | ------- |
+| `url`     | string | Yes      | RSS feed URL                  | -       |
+| `limit`   | number | No       | Max entries to return (1-100) | 10      |
 
 ### fetch_article_content
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `url` | string | Yes | Article URL to extract content from |
+| Parameter | Type   | Required | Description                         |
+| --------- | ------ | -------- | ----------------------------------- |
+| `url`     | string | Yes      | Article URL to extract content from |
 
 ## Troubleshooting
 

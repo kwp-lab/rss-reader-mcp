@@ -31,23 +31,3 @@ export interface ArticleContent {
   url: string;
   extractedAt: string;
 }
-
-// Type guards
-export function isValidFetchFeedArgs(args: any): args is FetchFeedArgs {
-  return (
-    typeof args === 'object' &&
-    args !== null &&
-    typeof args.url === 'string' &&
-    args.url.length > 0 &&
-    (args.limit === undefined || (typeof args.limit === 'number' && args.limit > 0))
-  );
-}
-
-export function isValidFetchArticleArgs(args: any): args is FetchArticleArgs {
-  return (
-    typeof args === 'object' &&
-    args !== null &&
-    typeof args.url === 'string' &&
-    args.url.length > 0
-  );
-}

@@ -35,12 +35,13 @@
 ### 使用示例
 
 - 基础RSS源获取
+
   > 能否从BBC新闻RSS源获取最新5条头条？
-URL: https://feeds.bbci.co.uk/news/rss.xml
+  > URL: https://feeds.bbci.co.uk/news/rss.xml
 
 - 完整文章内容提取
   > 请将此文章完整内容提取为Markdown格式：
-https://example.com/news/article-title
+  > https://example.com/news/article-title
 
 ## 🔧 工具参考
 
@@ -80,12 +81,7 @@ docker build -t rss-reader-mcp .
   "mcpServers": {
     "rss-reader-mcp": {
       "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "rss-reader-mcp"
-      ]
+      "args": ["run", "--rm", "-i", "rss-reader-mcp"]
     }
   }
 }

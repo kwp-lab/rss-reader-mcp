@@ -1,21 +1,23 @@
-FROM node:22.12-alpine AS builder
-
-COPY . /app
+FROM node:22-slim
 
 WORKDIR /app
 
-RUN --mount=type=cache,target=/root/.npm npm install
-
-FROM node:22-alpine AS release
-
-WORKDIR /app
-
-COPY --from=builder /app/build /app/build
-COPY --from=builder /app/package.json /app/package.json
-COPY --from=builder /app/package-lock.json /app/package-lock.json
+# Copy package files
+COPY package*.json ./
 
 ENV NODE_ENV=production
+ENV TRANSPORT=httpStream
+ENV PORT=8081
+ENV MCP_SERVER_HOST=0.0.0.0
 
+# Install dependencies
 RUN npm ci --ignore-scripts --omit-dev
 
+# Copy source code
+COPY . .
+
+# Build if needed
+RUN npm run build
+
+# Start the server
 ENTRYPOINT ["node", "build/index.js"]
