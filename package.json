@@ -1,6 +1,6 @@
 {
   "name": "rss-reader-mcp",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "MCP server for RSS feed aggregation and article content extraction",
   "main": "build/index.js",
   "module": "./src/index.ts",
