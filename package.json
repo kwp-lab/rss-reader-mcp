@@ -1,18 +1,24 @@
 {
   "name": "rss-reader-mcp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for RSS feed aggregation and article content extraction",
   "main": "build/index.js",
   "module": "./src/index.ts",
   "bin": {
     "rss-mcp": "./build/index.js"
   },
-  "type": "module",  "scripts": {
+  "type": "module",
+  "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "start": "node build/index.js",
     "dev": "tsc && node build/index.js"
   },
-  "keywords": ["mcp", "rss", "feed", "aggregator"],
+  "keywords": [
+    "mcp",
+    "rss",
+    "feed",
+    "aggregator"
+  ],
   "homepage": "https://github.com/kwp-lab/rss-reader-mcp",
   "bugs": "https://github.com/kwp-lab/rss-reader-mcp/issues",
   "repository": {
