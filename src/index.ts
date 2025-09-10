@@ -221,3 +221,10 @@ if (transportType === "httpStream") {
     transportType: "stdio",
   });
 }
+
+const shutdown = (signal: string) => {
+  console.error(`Received ${signal}, shutting down...`);
+  process.exit(0);
+};
+process.on("SIGINT", () => shutdown("SIGINT"));
+process.on("SIGTERM", () => shutdown("SIGTERM"));
