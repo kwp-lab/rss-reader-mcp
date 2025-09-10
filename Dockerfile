@@ -11,7 +11,7 @@ ENV PORT=8081
 ENV MCP_SERVER_HOST=0.0.0.0
 
 # Install dependencies
-RUN npm ci --ignore-scripts --omit-dev
+RUN npm ci
 
 # Copy source code
 COPY . .
